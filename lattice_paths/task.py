@@ -4,7 +4,14 @@ import random
 
 from sirius_gate import FamilyCard, TaskFamily, answers, blocks
 
-SIZES = {1: (3, 3), 2: (3, 4), 3: (4, 5), 4: (5, 6), 5: (6, 7)}
+# На каждой сложности размер поля выбирается из нескольких, иначе вариантов слишком мало.
+SIZES = {
+    1: [(3, 4), (4, 3), (4, 4)],
+    2: [(4, 4), (4, 5), (5, 4)],
+    3: [(4, 5), (5, 5), (5, 4)],
+    4: [(5, 6), (6, 5), (6, 6)],
+    5: [(6, 7), (7, 6), (7, 7)],
+}
 
 
 def count_paths(rows, cols, blocked):
@@ -24,10 +31,10 @@ def count_paths(rows, cols, blocked):
 
 def generate(seed, difficulty, context):
     rng = random.Random(seed)
-    rows, cols = SIZES[difficulty]
+    rows, cols = rng.choice(SIZES[difficulty])
     inner = [(row, col) for row in range(rows) for col in range(cols) if (row, col) not in {(0, 0), (rows - 1, cols - 1)}]
     while True:
-        blocked = set(rng.sample(inner, difficulty))
+        blocked = set(rng.sample(inner, difficulty + 1))
         answer = count_paths(rows, cols, blocked)
         if answer >= 2:
             break
