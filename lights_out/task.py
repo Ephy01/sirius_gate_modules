@@ -50,8 +50,8 @@ def public_state(private_state):
         for row, line in enumerate(lamps)
     ]
     return blocks.scene(
-        "Нажатие на клетку переключает её и соседние по стороне клетки. Погасите все лампы "
-        "и напишите done. Чем меньше нажатий, тем лучше.",
+        "Нажатие на клетку переключает её и соседние по стороне клетки. Погасите все лампы. "
+        "Чем меньше нажатий, тем лучше.",
         [
             blocks.grid(cells),
             blocks.facts(f"Нажатий: {len(private_state['presses'])}", f"Горит ламп: {sum(map(sum, lamps))}"),
@@ -64,6 +64,7 @@ def public_state(private_state):
             "done — все лампы погашены",
         ],
         response_hint="done",
+        answer_guide="Когда все лампы погашены, напишите в чате done.",
     )
 
 
