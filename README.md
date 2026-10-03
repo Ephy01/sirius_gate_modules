@@ -1,0 +1,113 @@
+# Модули задач Sirius Gate
+
+Здесь лежат типы задач, которые подключаются к платформе Sirius Gate без изменения
+её кода. Один модуль — одна папка с файлом `task.py`.
+
+| Модуль | Что делает участник |
+|---|---|
+| `lattice_paths` | считает пути фишки на клетчатом поле с запрещёнными клетками |
+| `lights_out` | гасит лампы на поле, где нажатие переключает клетку и её соседей |
+
+## Как подключить
+
+Платформа читает модули из папки, указанной в переменной `TASK_MODULES_DIR`:
+
+```bash
+cd sirius_test/backend
+TASK_MODULES_DIR=/путь/к/sirius_gate_modules .venv/bin/uvicorn app.main:app --reload --port 8001
+```
+
+После запуска модули появляются в конструкторе контеста с пометкой «модуль». Если
+модуль не загрузился, конструктор показывает его имя и причину. Остальные задачи
+при этом продолжают работать.
+
+## Самый короткий модуль
+
+```python
+import random
+
+from sirius_gate import FamilyCard, TaskFamily, answers, blocks
+
+
+def generate(seed, difficulty, context):
+    rng = random.Random(seed)
+    a, b = rng.randint(10, 99), rng.randint(10, 99)
+    public = blocks.scene(f"Сколько будет {a} + {b}?", [], response_hint="/answer <число>")
+    return public, {"answer": a + b}
+
+
+def evaluate(answer, private_state):
+    return {"correct": answers.integer(answer) == private_state["answer"]}
+
+
+FAMILY = TaskFamily(
+    key="two_numbers",
+    version="two-numbers-v1",
+    generate=generate,
+    evaluate=evaluate,
+    card=FamilyCard(title="Сумма двух чисел", description="Учебный пример."),
+)
+```
+
+`generate` получает число `seed`, сложность от 1 до 5 и настройки контеста. Она
+возвращает две части задачи:
+
+- `public_state` видит участник. Его удобно собирать функцией `blocks.scene`.
+- `private_state` хранит ответ и всё, что участнику знать нельзя.
+
+`evaluate` получает текст ответа и `private_state` и возвращает словарь с полем
+`correct`.
+
+## Три правила
+
+1. **Одинаковый `seed` даёт одинаковую задачу.** Все случайные решения берутся из
+   `random.Random(seed)`. Платформа проверяет это при загрузке модуля.
+2. **Ответ живёт только в `private_state`.** Всё, что попало в `public_state`,
+   участник может увидеть.
+3. **Ключ и версия не меняют смысл.** `key` пишется строчными латинскими буквами,
+   цифрами и знаком `_`. Если задача стала генерироваться или проверяться иначе,
+   у неё новая `version`.
+
+## Из чего собирается сцена
+
+```python
+from sirius_gate import blocks
+```
+
+| Блок | Что показывает |
+|---|---|
+| `blocks.text("...")` | абзац текста |
+| `blocks.table(столбцы, строки)` | таблицу |
+| `blocks.grid(клетки)` | клетчатое поле |
+| `blocks.cell("3", tone="accent", command="/op press:0:1")` | клетку поля, с командой она становится кнопкой |
+| `blocks.buttons([blocks.button("Сбросить", "/reset")])` | ряд кнопок |
+| `blocks.facts("Ходов: 3", "Лимит: 10")` | короткие строки состояния |
+
+Оттенки клетки: `plain`, `accent`, `muted`, `good`, `bad`.
+
+## Задача с действиями
+
+Участник может менять состояние задачи командами чата или кликами. Модуль
+перечисляет разрешённые команды в `blocks.scene(..., commands=[...])` и задаёт
+обработчики в `TaskFamily(actions={...})`.
+
+| Команда участника | Имя в `commands` | Обработчик в `actions` |
+|---|---|---|
+| `/op <что-то>` | `op` | `apply_op` |
+| `/test <что-то>` | `probe` | `probe` |
+| `/hint` | `hint` | `hint` |
+| `/undo` | `undo` | `undo` |
+| `/reset` | `reset` | `reset` |
+| `done`, `impossible` | `done` | проверяет `evaluate` |
+
+Обработчик получает данные команды и оба состояния и возвращает `Transition` с
+новыми состояниями и сообщением участнику. Полный пример — `lights_out/task.py`.
+
+Если ответ пока нельзя засчитать, `evaluate` возвращает
+`{"correct": False, "should_finalize": False, "feedback": "..."}`. Задача остаётся
+открытой.
+
+## Что ещё можно указать в `TaskFamily`
+
+- `reference_answer` — эталонный ответ для команды `/get answer` в режиме отладки.
+- `card` — название, описание и вес по умолчанию для конструктора контеста.
