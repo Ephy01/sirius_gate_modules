@@ -2,12 +2,12 @@
 
 from itertools import product
 
-from sirius_gate import EASY, HARD, MEDIUM, NotYet, Plugin, Rejected, TaskType, answers, blocks
+from sirius_gate import NotYet, Plugin, Rejected, TaskType, answers, blocks
 
-SIZES = {EASY: 3, MEDIUM: 4, HARD: 5}
-SCRAMBLE = {EASY: 3, MEDIUM: 5, HARD: 9}
+SIZES = {1: 3, 2: 3, 3: 4, 4: 4, 5: 5}
+SCRAMBLE = {1: 2, 2: 4, 3: 4, 4: 7, 5: 9}
 # На поле 4×4 разные наборы нажатий дают одно и то же, поэтому длину решения проверяет validate.
-SHORTEST = {EASY: 2, MEDIUM: 4, HARD: 6}
+SHORTEST = {1: 2, 2: 3, 3: 4, 4: 5, 5: 7}
 
 
 def press(lamps, row, col):
